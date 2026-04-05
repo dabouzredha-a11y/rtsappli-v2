@@ -1,0 +1,10 @@
+{
+  "name": "Rapid Truck Service",
+  "short_name": "RTS",
+  "description": "Gestion de garage poids lourds",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f9fafb",
+  "theme_color": "#f97316",
+  "icons": []
+}

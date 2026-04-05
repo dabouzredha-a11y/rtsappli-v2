@@ -4,7 +4,9 @@
       "Bash(npm install:*)",
       "Bash(npx next:*)",
       "Bash(npm run:*)",
-      "Bash(curl -s http://localhost:3000 -o /dev/null -w \"%{http_code}\")"
+      "Bash(curl -s http://localhost:3000 -o /dev/null -w \"%{http_code}\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d.get\\('packages',{}\\).get\\('node_modules/next',{}\\).get\\('version','not found'\\)\\)\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d.get\\('version'\\)\\)\")"
     ]
   }
 }

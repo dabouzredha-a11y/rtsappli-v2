@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, use } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { StatusBadge } from '@/components/ui/StatusBadge'
@@ -15,10 +15,10 @@ import {
   UserCheck, ClipboardList,
 } from 'lucide-react'
 
-interface Props { params: Promise<{ id: string }> }
+interface Props { params: { id: string } }
 
 export default function DossierDetailPage({ params }: Props) {
-  const { id } = use(params)
+  const { id } = params
   const [dossier, setDossier] = useState<Dossier | null>(null)
   const [diagnostic, setDiagnostic] = useState<Diagnostic | null>(null)
   const [pieces, setPieces] = useState<PieceDemandee[]>([])
@@ -40,7 +40,7 @@ export default function DossierDetailPage({ params }: Props) {
     ] = await Promise.all([
       supabase.from('dossiers').select('*').eq('id', id).single(),
       supabase.from('diagnostics').select('*').eq('dossier_id', id).single(),
-      supabase.from('pieces_demandees').select('*').eq('dossier_id', id).order('created_at', { ascending: false }),
+      supabase.from('pieces_demandes').select('*').eq('dossier_id', id).order('created_at', { ascending: false }),
       supabase.from('historique_actions').select('*').eq('dossier_id', id).order('created_at', { ascending: false }),
       supabase.from('fiches_controle').select('*').eq('dossier_id', id).single(),
       supabase.from('profils').select('*').in('role', ['mecanicien', 'chef_atelier']).eq('actif', true),
@@ -345,7 +345,7 @@ function PiecesTab({ dossierId, pieces, onRefresh }: { dossierId: string; pieces
     e.preventDefault()
     setLoading(true)
     const supabase = createClient()
-    await supabase.from('pieces_demandees').insert({
+    await supabase.from('pieces_demandes').insert({
       dossier_id: dossierId,
       designation: form.designation,
       reference_oem: form.reference_oem || null,
@@ -362,7 +362,7 @@ function PiecesTab({ dossierId, pieces, onRefresh }: { dossierId: string; pieces
 
   const updateStatut = async (pieceId: string, statut: string) => {
     const supabase = createClient()
-    await supabase.from('pieces_demandees').update({ statut }).eq('id', pieceId)
+    await supabase.from('pieces_demandes').update({ statut }).eq('id', pieceId)
     onRefresh()
   }
 

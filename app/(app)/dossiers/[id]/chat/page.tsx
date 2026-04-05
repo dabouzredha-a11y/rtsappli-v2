@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, use } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
@@ -12,10 +12,10 @@ import type { MessageDossier, Dossier } from '@/lib/types'
 import { formatDateTime } from '@/lib/utils'
 import { ArrowLeft, Send, ImageIcon, Loader2 } from 'lucide-react'
 
-interface Props { params: Promise<{ id: string }> }
+interface Props { params: { id: string } }
 
 export default function ChatPage({ params }: Props) {
-  const { id } = use(params)
+  const { id } = params
   const { profil } = useAuth()
   const [dossier, setDossier] = useState<Dossier | null>(null)
   const [messages, setMessages] = useState<MessageDossier[]>([])

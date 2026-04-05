@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, use } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
@@ -10,10 +10,10 @@ import type { Photo, Dossier } from '@/lib/types'
 import { CATEGORIE_PHOTO } from '@/lib/constants'
 import { ArrowLeft, Upload, Loader2, Trash2, ImageIcon } from 'lucide-react'
 
-interface Props { params: Promise<{ id: string }> }
+interface Props { params: { id: string } }
 
 export default function PhotosPage({ params }: Props) {
-  const { id } = use(params)
+  const { id } = params
   const { profil } = useAuth()
   const [dossier, setDossier] = useState<Dossier | null>(null)
   const [photos, setPhotos] = useState<Photo[]>([])

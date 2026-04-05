@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, use } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/useAuth'
@@ -10,7 +10,7 @@ import { FICHES_BY_TYPE } from '@/lib/constants'
 import type { Dossier, Diagnostic, FicheControle } from '@/lib/types'
 import { ArrowLeft, Save, ClipboardList, Wrench } from 'lucide-react'
 
-interface Props { params: Promise<{ id: string }> }
+interface Props { params: { id: string } }
 
 type ControleValue = 'ok' | 'attention' | 'ko' | 'na'
 
@@ -22,7 +22,7 @@ const RESULT_OPTS: { value: ControleValue; label: string; color: string }[] = [
 ]
 
 export default function DiagnosticPage({ params }: Props) {
-  const { id } = use(params)
+  const { id } = params
   const { profil } = useAuth()
   const [dossier, setDossier] = useState<Dossier | null>(null)
   const [loading, setLoading] = useState(true)

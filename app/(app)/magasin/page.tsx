@@ -25,7 +25,7 @@ export default function MagasinPage() {
   const fetchPieces = async () => {
     const supabase = createClient()
     const { data } = await supabase
-      .from('pieces_demandees')
+      .from('pieces_demandes')
       .select(`
         *,
         dossiers!inner(numero, client_nom, id)
@@ -46,7 +46,7 @@ export default function MagasinPage() {
 
   const updateStatut = async (id: string, statut: string) => {
     const supabase = createClient()
-    await supabase.from('pieces_demandees').update({ statut }).eq('id', id)
+    await supabase.from('pieces_demandes').update({ statut }).eq('id', id)
     fetchPieces()
   }
 
