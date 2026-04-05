@@ -26,38 +26,83 @@ export default function DossierDetailPage({ params }: Props) {
   const [ficheControle, setFicheControle] = useState<FicheControle | null>(null)
   const [mecaniciens, setMecaniciens] = useState<Profil[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'apercu' | 'pieces' | 'historique' | 'controle'>('apercu')
 
   const fetchAll = async () => {
+    setLoading(true)
+    setError(null)
     const supabase = createClient()
-    const [
-      { data: d },
-      { data: diag },
-      { data: p },
-      { data: hist },
-      { data: fc },
-      { data: mecas },
-    ] = await Promise.all([
-      supabase.from('dossiers').select('*').eq('id', id).single(),
-      supabase.from('diagnostics').select('*').eq('dossier_id', id).single(),
-      supabase.from('pieces_demandes').select('*').eq('dossier_id', id).order('created_at', { ascending: false }),
-      supabase.from('historique_actions').select('*').eq('dossier_id', id).order('created_at', { ascending: false }),
-      supabase.from('fiches_controle').select('*').eq('dossier_id', id).single(),
-      supabase.from('profils').select('*').in('role', ['mecanicien', 'chef_atelier']).eq('actif', true),
-    ])
-    setDossier(d)
-    setDiagnostic(diag)
-    setPieces(p ?? [])
-    setHistorique(hist ?? [])
-    setFicheControle(fc)
-    setMecaniciens(mecas ?? [])
-    setLoading(false)
+
+    try {
+      // Fetch dossier first — required to render anything
+      const { data: d, error: dossierErr } = await supabase
+        .from('dossiers')
+        .select('*')
+        .eq('id', id)
+        .single()
+
+      if (dossierErr || !d) {
+        setError(dossierErr?.message ?? 'Dossier introuvable')
+        return
+      }
+
+      setDossier(d)
+
+      // Secondary data — use maybeSingle() so missing rows return null instead of error
+      const [
+        { data: diag },
+        { data: p },
+        { data: hist },
+        { data: fc },
+        { data: mecas },
+      ] = await Promise.all([
+        supabase.from('diagnostics').select('*').eq('dossier_id', id).maybeSingle(),
+        supabase.from('pieces_demandes').select('*').eq('dossier_id', id).order('created_at', { ascending: false }),
+        supabase.from('historique_actions').select('*').eq('dossier_id', id).order('created_at', { ascending: false }),
+        supabase.from('fiches_controle').select('*').eq('dossier_id', id).maybeSingle(),
+        supabase.from('profils').select('*').in('role', ['mecanicien', 'chef_atelier']).eq('actif', true),
+      ])
+
+      setDiagnostic(diag)
+      setPieces(p ?? [])
+      setHistorique(hist ?? [])
+      setFicheControle(fc)
+      setMecaniciens(mecas ?? [])
+    } catch (err) {
+      console.error('[DossierDetail] fetchAll error:', err)
+      setError('Erreur de connexion. Vérifiez votre réseau et réessayez.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => { fetchAll() }, [id])
 
   if (loading) return <PageLoader />
-  if (!dossier) return <div className="p-8 text-center text-gray-400">Dossier introuvable</div>
+
+  if (error || !dossier) {
+    return (
+      <div className="max-w-5xl mx-auto p-8">
+        <div className="flex items-center gap-3 mb-6">
+          <Link href="/dossiers" className="btn-ghost p-2">
+            <ArrowLeft className="w-4 h-4" />
+          </Link>
+          <span className="text-sm text-gray-500">Retour aux dossiers</span>
+        </div>
+        <div className="card p-10 text-center">
+          <AlertTriangle className="w-10 h-10 text-amber-400 mx-auto mb-3" />
+          <p className="text-gray-700 font-medium mb-1">
+            {error ?? 'Dossier introuvable'}
+          </p>
+          <p className="text-sm text-gray-400 mb-4">ID : {id}</p>
+          <button onClick={fetchAll} className="btn-primary text-sm">
+            Réessayer
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   const vehiculeConfig = TYPE_VEHICULE_CONFIG[dossier.type_vehicule]
 
