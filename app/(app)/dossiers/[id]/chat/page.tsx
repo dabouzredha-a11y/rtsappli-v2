@@ -20,6 +20,7 @@ export default function ChatPage({ params }: Props) {
   const [dossier, setDossier] = useState<Dossier | null>(null)
   const [messages, setMessages] = useState<MessageDossier[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState('')
   const [sending, setSending] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -30,13 +31,19 @@ export default function ChatPage({ params }: Props) {
     const supabase = createClient()
 
     const init = async () => {
-      const [{ data: d }, { data: msgs }] = await Promise.all([
-        supabase.from('dossiers').select('*').eq('id', id).single(),
-        supabase.from('messages_dossier').select('*').eq('dossier_id', id).order('created_at', { ascending: true }),
-      ])
-      setDossier(d)
-      setMessages(msgs ?? [])
-      setLoading(false)
+      try {
+        const [{ data: d }, { data: msgs }] = await Promise.all([
+          supabase.from('dossiers').select('*').eq('id', id).single(),
+          supabase.from('messages_dossier').select('*').eq('dossier_id', id).order('created_at', { ascending: true }),
+        ])
+        setDossier(d)
+        setMessages(msgs ?? [])
+      } catch (err) {
+        console.error('[ChatPage] init error:', err)
+        setError('Erreur de chargement. Vérifiez votre connexion.')
+      } finally {
+        setLoading(false)
+      }
     }
 
     init()
@@ -113,6 +120,17 @@ export default function ChatPage({ params }: Props) {
   }
 
   if (loading) return <PageLoader />
+
+  if (error) {
+    return (
+      <div className="max-w-2xl mx-auto p-8 text-center">
+        <p className="text-gray-700 font-medium mb-3">{error}</p>
+        <Link href={`/dossiers/${id}`} className="btn-secondary text-sm">
+          <ArrowLeft className="w-4 h-4" /> Retour au dossier
+        </Link>
+      </div>
+    )
+  }
 
   const myId = profil?.id
 

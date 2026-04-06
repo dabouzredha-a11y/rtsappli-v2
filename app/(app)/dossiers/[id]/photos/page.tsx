@@ -18,6 +18,7 @@ export default function PhotosPage({ params }: Props) {
   const [dossier, setDossier] = useState<Dossier | null>(null)
   const [photos, setPhotos] = useState<Photo[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [categorie, setCategorie] = useState<string>('avant')
   const [commentaire, setCommentaire] = useState('')
@@ -25,14 +26,20 @@ export default function PhotosPage({ params }: Props) {
   const fileRef = useRef<HTMLInputElement>(null)
 
   const fetchPhotos = async () => {
-    const supabase = createClient()
-    const [{ data: d }, { data: p }] = await Promise.all([
-      supabase.from('dossiers').select('*').eq('id', id).single(),
-      supabase.from('photos').select('*').eq('dossier_id', id).order('created_at', { ascending: false }),
-    ])
-    setDossier(d)
-    setPhotos(p ?? [])
-    setLoading(false)
+    try {
+      const supabase = createClient()
+      const [{ data: d }, { data: p }] = await Promise.all([
+        supabase.from('dossiers').select('*').eq('id', id).single(),
+        supabase.from('photos').select('*').eq('dossier_id', id).order('created_at', { ascending: false }),
+      ])
+      setDossier(d)
+      setPhotos(p ?? [])
+    } catch (err) {
+      console.error('[PhotosPage] fetchPhotos error:', err)
+      setError('Erreur de chargement. Vérifiez votre connexion.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => { fetchPhotos() }, [id])
@@ -77,6 +84,17 @@ export default function PhotosPage({ params }: Props) {
   }
 
   if (loading) return <PageLoader />
+
+  if (error) {
+    return (
+      <div className="max-w-4xl mx-auto p-8 text-center">
+        <p className="text-gray-700 font-medium mb-3">{error}</p>
+        <Link href={`/dossiers/${id}`} className="btn-secondary text-sm">
+          <ArrowLeft className="w-4 h-4" /> Retour au dossier
+        </Link>
+      </div>
+    )
+  }
 
   const byCategorie = Object.entries(CATEGORIE_PHOTO).map(([key, label]) => ({
     key,

@@ -46,31 +46,36 @@ export default function DiagnosticPage({ params }: Props) {
 
   useEffect(() => {
     const init = async () => {
-      const supabase = createClient()
-      const [{ data: d }, { data: diag }, { data: fc }] = await Promise.all([
-        supabase.from('dossiers').select('*').eq('id', id).single(),
-        supabase.from('diagnostics').select('*').eq('dossier_id', id).single(),
-        supabase.from('fiches_controle').select('*').eq('dossier_id', id).single(),
-      ])
-      setDossier(d)
-      if (diag) {
-        setDiagId(diag.id)
-        setDiag({
-          symptomes:    diag.symptomes ?? '',
-          controles:    diag.controles ?? '',
-          hypotheses:   diag.hypotheses ?? '',
-          travaux:      diag.travaux ?? '',
-          temps_estime: diag.temps_estime,
-        })
+      try {
+        const supabase = createClient()
+        const [{ data: d }, { data: diag }, { data: fc }] = await Promise.all([
+          supabase.from('dossiers').select('*').eq('id', id).single(),
+          supabase.from('diagnostics').select('*').eq('dossier_id', id).maybeSingle(),
+          supabase.from('fiches_controle').select('*').eq('dossier_id', id).maybeSingle(),
+        ])
+        setDossier(d)
+        if (diag) {
+          setDiagId(diag.id)
+          setDiag({
+            symptomes:    diag.symptomes ?? '',
+            controles:    diag.controles ?? '',
+            hypotheses:   diag.hypotheses ?? '',
+            travaux:      diag.travaux ?? '',
+            temps_estime: diag.temps_estime,
+          })
+        }
+        if (fc) {
+          setFicheId(fc.id)
+          setResultats(fc.resultats ?? {})
+          setObservations(fc.observations ?? '')
+          setPiecesRemplacer(fc.pieces_a_remplacer ?? '')
+          setTempsControle(fc.temps_controle?.toString() ?? '')
+        }
+      } catch (err) {
+        console.error('[DiagnosticPage] init error:', err)
+      } finally {
+        setLoading(false)
       }
-      if (fc) {
-        setFicheId(fc.id)
-        setResultats(fc.resultats ?? {})
-        setObservations(fc.observations ?? '')
-        setPiecesRemplacer(fc.pieces_a_remplacer ?? '')
-        setTempsControle(fc.temps_controle?.toString() ?? '')
-      }
-      setLoading(false)
     }
     init()
   }, [id])
