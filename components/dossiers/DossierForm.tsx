@@ -16,6 +16,7 @@ export function DossierForm() {
   const router = useRouter()
   const { profil } = useAuth()
   const [loading, setLoading] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const [form, setForm] = useState({
     client_nom: '',
     client_telephone: '',
@@ -39,29 +40,49 @@ export function DossierForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!profil) return
-    setLoading(true)
-
-    const supabase = createClient()
-    const numero = generateNumero()
-    const now = new Date().toISOString()
-
-    const payload = {
-      ...form,
-      numero,
-      kilometrage: form.kilometrage ? parseInt(form.kilometrage) : null,
-      statut: 'nouveau',
-      created_at: now,
-      updated_at: now,
+    if (!profil) {
+      setSubmitError('Vous devez être connecté pour créer un dossier.')
+      return
     }
+    setLoading(true)
+    setSubmitError(null)
 
-    const { data, error } = await supabase
-      .from('dossiers')
-      .insert(payload)
-      .select('id')
-      .single()
+    try {
+      const supabase = createClient()
+      const numero = generateNumero()
+      const now = new Date().toISOString()
 
-    if (!error && data) {
+      const payload = {
+        ...form,
+        numero,
+        // Sanitize optional string fields — empty string → null
+        client_email:      form.client_email      || null,
+        societe:           form.societe           || null,
+        vin:               form.vin               || null,
+        kilometrage:       form.kilometrage ? parseInt(form.kilometrage) : null,
+        date_ct:           form.date_ct           || null,
+        date_tachygraphe:  form.date_tachygraphe  || null,
+        date_limiteur:     form.date_limiteur     || null,
+        statut: 'nouveau',
+        created_at: now,
+        updated_at: now,
+      }
+
+      const { data, error } = await supabase
+        .from('dossiers')
+        .insert(payload)
+        .select('id')
+        .single()
+
+      if (error || !data) {
+        setSubmitError(
+          error?.message
+            ? `Erreur Supabase : ${error.message}`
+            : 'Erreur inconnue lors de la création du dossier.'
+        )
+        return
+      }
+
       // Log history
       await supabase.from('historique_actions').insert({
         dossier_id: data.id,
@@ -72,20 +93,20 @@ export function DossierForm() {
         commentaire: 'Dossier créé',
       })
 
-      // Notify n8n
+      // Notify n8n (non-bloquant — échec ignoré)
       if (N8N_URL) {
-        try {
-          await fetch(N8N_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...payload, id: data.id }),
-          })
-        } catch { /* webhook optional */ }
+        fetch(N8N_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...payload, id: data.id }),
+        }).catch((err) => console.warn('[DossierForm] webhook n8n failed:', err))
       }
 
-      router.push(`/dossiers/${data.id}`)
-    } else {
-      alert('Erreur lors de la création : ' + error?.message)
+      router.push('/dossiers')
+    } catch (err) {
+      console.error('[DossierForm] handleSubmit error:', err)
+      setSubmitError('Une erreur inattendue est survenue. Vérifiez votre connexion et réessayez.')
+    } finally {
       setLoading(false)
     }
   }
@@ -231,6 +252,13 @@ export function DossierForm() {
           />
         </div>
       </div>
+
+      {submitError && (
+        <div className="flex items-start gap-3 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700">
+          <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
+          <p className="text-sm font-medium">{submitError}</p>
+        </div>
+      )}
 
       <div className="flex gap-3 justify-end">
         <button type="button" onClick={() => router.back()} className="btn-secondary">
