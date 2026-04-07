@@ -1,5 +1,4 @@
 'use client'
-
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
@@ -14,19 +13,34 @@ export function useAuth() {
     const supabase = createClient()
 
     const fetchProfil = async (userId: string) => {
-      const { data } = await supabase
-        .from('profils')
-        .select('*')
-        .eq('id', userId)
-        .single()
-      setProfil(data)
+      try {
+        const { data } = await supabase
+          .from('profils')
+          .select('*')
+          .eq('id', userId)
+          .single()
+        setProfil(data)
+      } catch {
+        setProfil(null)
+      }
     }
 
     const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-      if (user) await fetchProfil(user.id)
-      setLoading(false)
+      try {
+        // Timeout de sécurité : si Supabase ne répond pas en 5s, on arrête le loading
+        const timeout = setTimeout(() => {
+          setLoading(false)
+        }, 5000)
+
+        const { data: { user } } = await supabase.auth.getUser()
+        clearTimeout(timeout)
+        setUser(user)
+        if (user) await fetchProfil(user.id)
+      } catch {
+        setUser(null)
+      } finally {
+        setLoading(false)
+      }
     }
 
     init()
@@ -38,6 +52,7 @@ export function useAuth() {
       } else {
         setProfil(null)
       }
+      setLoading(false)
     })
 
     return () => subscription.unsubscribe()
