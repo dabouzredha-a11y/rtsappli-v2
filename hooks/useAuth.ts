@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 import type { Profil } from '@/lib/types'
@@ -8,8 +8,12 @@ export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
   const [profil, setProfil] = useState<Profil | null>(null)
   const [loading, setLoading] = useState(true)
+  const initialized = useRef(false)
 
   useEffect(() => {
+    if (initialized.current) return
+    initialized.current = true
+
     const supabase = createClient()
 
     const fetchProfil = async (userId: string) => {
@@ -27,17 +31,9 @@ export function useAuth() {
 
     const init = async () => {
       try {
-        // Timeout de sécurité : si Supabase ne répond pas en 5s, on arrête le loading
-        const timeout = setTimeout(() => {
-          setLoading(false)
-        }, 5000)
-
         const { data: { user } } = await supabase.auth.getUser()
-        clearTimeout(timeout)
         setUser(user)
         if (user) await fetchProfil(user.id)
-      } catch {
-        setUser(null)
       } finally {
         setLoading(false)
       }
